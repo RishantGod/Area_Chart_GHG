@@ -1,17 +1,11 @@
 async function area_chart() {
 
-    const data_drought = await d3.csv('data_drought.csv');
     const data_flood = await d3.csv('data_flood.csv');
     const data_extremeTemp = await d3.csv('data_extremeTemp.csv');
     const data_storm = await d3.csv('data_storm.csv');
     const data_wildfire = await d3.csv('data_wildfire.csv');
 
-
     const parseDate = d3.timeParse('%Y-%m-%d');
-    data_drought.forEach(d => {
-        d.Year = parseDate(d.Year);
-        d.value = +d.value;
-    });
 
     data_flood.forEach(d => {
         d.Year = parseDate(d.Year);
@@ -55,67 +49,61 @@ async function area_chart() {
     const wrapper = d3.select('#wrapper')
         .append('svg')
         .attr('width', dimensions.width * 2 + 50) // Adjust width to accommodate both charts
-        .attr('height', dimensions.height * 3 + 100); // Adjust height to accommodate all charts
+        .attr('height', dimensions.height * 2 + 100); // Adjust height to accommodate all charts
 
     const defs = wrapper.append('defs');
 
     // Define the gradients
     const gradients = [
-        { id: 'gradient1', color: '#18A8EB33', stroke: '#18A8EB' },
-        { id: 'gradient2', color: '#FF573333', stroke: '#FF5733' },
-        { id: 'gradient3', color: '#33FF5733', stroke: '#33FF57' },
-        { id: 'gradient4', color: '#FF33A833', stroke: '#FF33A8' },
-        { id: 'gradient5', color: '#A833FF33', stroke: '#A833FF' }
+        { id: 'gradient1', color: '#18A8EB', stroke: '#18A8EB' },
+        { id: 'gradient2', color: '#EB1818', stroke: '#EB1818' },
+        { id: 'gradient3', color: '#D8510E', stroke: '#D8510E' },
+        { id: 'gradient4', color: '#EBC818', stroke: '#EBC818' }
     ];
 
-    gradients.forEach((gradient, index) => {
+
+    gradients.forEach((gradient) => {
         const grad = defs.append('linearGradient')
             .attr('id', gradient.id)
             .attr('x1', '0%')
             .attr('y1', '0%')
             .attr('x2', '0%')
-            .attr('y2', '100%');
+            .attr('y2', '90%');
 
         grad.append('stop')
             .attr('offset', '0%')
             .attr('stop-color', gradient.color)
-            .attr('stop-opacity', 1);
+            .attr('stop-opacity', 0.15);
 
         grad.append('stop')
             .attr('offset', '100%')
             .attr('stop-color', gradient.color)
-            .attr('stop-opacity', 0.1);
+            .attr('stop-opacity', 0);
     });
 
-    // Draw the first chart (Drought)
+    // Draw the first chart (Flood)
     const bounds1 = wrapper.append('g')
         .style('transform', `translate(${dimensions.margin.left}px, ${dimensions.margin.top + 20}px)`); // Shifted down by 20px
 
-    drawChart(bounds1, data_drought, dimensions, 'Droughts', 'gradient1', gradients[0].stroke);
+    drawChart(bounds1, data_flood, dimensions, 'Floods', 'gradient1', gradients[0].stroke);
 
-    // Draw the second chart (Flood)
+    // Draw the second chart (Extreme Temperature)
     const bounds2 = wrapper.append('g')
         .style('transform', `translate(${dimensions.width + dimensions.margin.left + 50}px, ${dimensions.margin.top + 20}px)`); // Shifted right by width + margin
 
-    drawChart(bounds2, data_flood, dimensions, 'Floods', 'gradient2', gradients[1].stroke);
+    drawChart(bounds2, data_extremeTemp, dimensions, 'Extreme Temperature Events', 'gradient2', gradients[1].stroke);
 
-    // Draw the third chart (Extreme Temperature)
+    // Draw the third chart (Storm)
     const bounds3 = wrapper.append('g')
         .style('transform', `translate(${dimensions.margin.left}px, ${dimensions.height + dimensions.margin.top + 70}px)`); // Shifted down by height + margin
 
-    drawChart(bounds3, data_extremeTemp, dimensions, 'Extreme Temperature Events', 'gradient3', gradients[2].stroke);
+    drawChart(bounds3, data_storm, dimensions, 'Storms', 'gradient3', gradients[2].stroke);
 
-    // Draw the fourth chart (Storm)
+    // Draw the fourth chart (Wildfire)
     const bounds4 = wrapper.append('g')
         .style('transform', `translate(${dimensions.width + dimensions.margin.left + 50}px, ${dimensions.height + dimensions.margin.top + 70}px)`); // Shifted right by width + margin
 
-    drawChart(bounds4, data_storm, dimensions, 'Storms', 'gradient4', gradients[3].stroke);
-
-    // Draw the fifth chart (Wildfire)
-    const bounds5 = wrapper.append('g')
-        .style('transform', `translate(${dimensions.margin.left}px, ${(dimensions.height * 2) + dimensions.margin.top + 120}px)`); // Shifted down by 2*height + margin
-
-    drawChart(bounds5, data_wildfire, dimensions, 'Wildfires', 'gradient5', gradients[4].stroke);
+    drawChart(bounds4, data_wildfire, dimensions, 'Wildfires', 'gradient4', gradients[3].stroke);
 }
 
 function drawChart(bounds, data, dimensions, title, gradientId, strokeColor) {
@@ -135,7 +123,7 @@ function drawChart(bounds, data, dimensions, title, gradientId, strokeColor) {
     const upperLineGenerator = d3.line()
         .x(d => xScale(xAccessor(d)))
         .y(d => yScale(yAccessor(d)))
-        .curve(d3.curveBasis); // Add curve if needed
+        .curve(d3.curveCardinal.tension(0.5)); 
 
     const upperPath = upperLineGenerator(data);
 
@@ -150,7 +138,7 @@ function drawChart(bounds, data, dimensions, title, gradientId, strokeColor) {
         .attr('d', upperLineGenerator(data))
         .attr('stroke', strokeColor)
         .attr('stroke-opacity', 1)
-        .attr('stroke-width', '1px')
+        .attr('stroke-width', '1.5px')
         .attr('fill', 'none');
 
     // 4. Draw peripherals
@@ -158,7 +146,7 @@ function drawChart(bounds, data, dimensions, title, gradientId, strokeColor) {
         .scale(xScale)
         .ticks(5)
         .tickSize(0)
-        .tickPadding(10);
+        .tickPadding(15);
 
     const xAxis = bounds.append('g')
         .call(xAxisGenerator)
@@ -167,7 +155,6 @@ function drawChart(bounds, data, dimensions, title, gradientId, strokeColor) {
 
     xAxis.select('.domain').remove();
 
-    // Add a straight vertical dashed-line above all the labels
     xAxis.selectAll('.tick')
         .append('line')
         .attr('y1', -dimensions.boundedHeight)
@@ -179,8 +166,56 @@ function drawChart(bounds, data, dimensions, title, gradientId, strokeColor) {
     bounds.append('text')
         .attr('class', 'title')
         .attr('x', -5)
-        .attr('y', -30) // Adjusted to be above the chart
-        .text(title)
+        .attr('y', -30)
+        .text(title);
+
+    // 6. Create tooltip (reused across events)
+    const tooltip = bounds.append('g')
+        .style('pointer-events', 'none')
+        .style('opacity', 0);
+
+    const tooltipCircle = tooltip.append('circle')
+        .attr('r', 4)
+        .attr('fill', 'white')
+        .attr('stroke', strokeColor);
+
+    const tooltipText = tooltip.append('text')
+        .attr('x', 0)
+        .attr('y', -20)
+        .attr('fill', 'black')
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '12px')
+        .attr('font-family', 'sans-serif');
+
+    // 7. Add mouse interaction using direct data-to-coordinate mapping
+    bounds.append('rect')
+        .attr('width', dimensions.boundedWidth)
+        .attr('height', dimensions.boundedHeight)
+        .style('opacity', 0)
+        .on('mousemove', function(event) {
+            // Use d3.pointer with the current rect as container for proper coordinates.
+            const [mouseX] = d3.pointer(event, this);
+            
+            // Convert mouseX to a corresponding date using xScale
+            const hoveredDate = xScale.invert(mouseX);
+            
+            // Use bisector to find closest index
+            const bisect = d3.bisector(xAccessor).left;
+            const closestIndex = bisect(data, hoveredDate);
+            const closestDataPoint = data[closestIndex];
+
+            // Directly calculate the tooltip position based on the scales
+            const tooltipX = xScale(xAccessor(closestDataPoint));
+            const tooltipY = yScale(yAccessor(closestDataPoint));
+
+            tooltip.style('opacity', 1)
+                .style('transform', `translate(${tooltipX}px, ${tooltipY}px)`);
+
+            tooltipText.text(yAccessor(closestDataPoint));
+        })
+        .on('mouseleave', () => {
+            tooltip.style('opacity', 0);
+        });
 }
 
 area_chart();
